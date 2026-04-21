@@ -10,7 +10,7 @@ import dotenv from 'dotenv';
 import { v2 as cloudinary } from 'cloudinary';
 import multer from 'multer';
 import { CloudinaryStorage } from 'multer-storage-cloudinary';
-import { User, Patient, Test, Booking, Result, Setting } from './models.js';
+import { User, Patient, Test, Booking, Result, Setting } from './models.ts';
 
 dotenv.config();
 
