@@ -13,7 +13,13 @@ export default function Reports() {
   const fetchBookings = async () => {
     try {
       const data = await api.get('/api/bookings');
-      setBookings(data);
+      // Fetch results for each booking to check for PDFs
+      const bookingsWithPdfs = await Promise.all(data.map(async (b: any) => {
+        const results = await api.get(`/api/results/${b.id}`);
+        const pdfUrls = results.flatMap((r: any) => r.pdfUrls || []);
+        return { ...b, pdfUrls };
+      }));
+      setBookings(bookingsWithPdfs);
     } catch (err) {
       console.error(err);
     } finally {
@@ -78,23 +84,54 @@ export default function Reports() {
               <p className="text-xs text-zinc-500 font-medium italic">{new Date(booking.createdAt).toLocaleString()}</p>
             </div>
 
-            <div className="flex gap-2">
-              <Button 
-                variant="outline" 
-                className="flex-1 gap-2 text-xs h-9"
-                onClick={() => handlePrintReport(booking.id)}
-              >
-                <Printer className="h-4 w-4" />
-                Print Report
-              </Button>
-              <Button 
-                variant="outline" 
-                className="flex-1 gap-2 text-xs h-9"
-                onClick={() => alert('Downloading invoice PDF...')}
-              >
-                <Download className="h-4 w-4" />
-                Invoice
-              </Button>
+            <div className="flex flex-col gap-2">
+              <div className="flex gap-2">
+                {booking.pdfUrls && booking.pdfUrls.length > 0 ? (
+                  <Button 
+                    as="a"
+                    href={booking.pdfUrls[0]}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex-1 gap-2 text-xs h-9 bg-emerald-600 hover:bg-emerald-700"
+                  >
+                    <FileText className="h-4 w-4" />
+                    {booking.pdfUrls.length > 1 ? `View PDF (1 of ${booking.pdfUrls.length})` : 'View PDF'}
+                  </Button>
+                ) : (
+                  <Button 
+                    variant="outline" 
+                    className="flex-1 gap-2 text-xs h-9"
+                    onClick={() => handlePrintReport(booking.id)}
+                  >
+                    <Printer className="h-4 w-4" />
+                    Print Report
+                  </Button>
+                )}
+                <Button 
+                  variant="outline" 
+                  className="flex-1 gap-2 text-xs h-9"
+                  onClick={() => alert('Downloading invoice PDF...')}
+                >
+                  <Download className="h-4 w-4" />
+                  Invoice
+                </Button>
+              </div>
+              
+              {booking.pdfUrls && booking.pdfUrls.length > 1 && (
+                <div className="flex flex-wrap gap-1 mt-1">
+                  {booking.pdfUrls.slice(1).map((url: string, i: number) => (
+                    <a 
+                      key={i} 
+                      href={url} 
+                      target="_blank" 
+                      rel="noopener noreferrer"
+                      className="text-[10px] bg-zinc-100 px-2 py-1 rounded hover:bg-zinc-200 transition-colors text-zinc-600 font-medium"
+                    >
+                      Extra Doc {i + 1}
+                    </a>
+                  ))}
+                </div>
+              )}
             </div>
           </Card>
         ))}

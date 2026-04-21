@@ -10,8 +10,8 @@ function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
 }
 
-export const Button = React.forwardRef<HTMLButtonElement, React.ButtonHTMLAttributes<HTMLButtonElement> & { variant?: 'primary' | 'secondary' | 'outline' | 'ghost' | 'danger' }>(
-  ({ className, variant = 'primary', ...props }, ref) => {
+export const Button = React.forwardRef<any, any>(
+  ({ className, variant = 'primary', as: Component = 'button', ...props }, ref) => {
     const variants = {
       primary: 'bg-zinc-900 text-zinc-50 hover:bg-zinc-800 shadow-sm',
       secondary: 'bg-zinc-100 text-zinc-900 hover:bg-zinc-200',
@@ -20,8 +20,10 @@ export const Button = React.forwardRef<HTMLButtonElement, React.ButtonHTMLAttrib
       danger: 'bg-red-600 text-white hover:bg-red-700 shadow-sm'
     };
 
+    const MotionComponent = motion.create(Component as any);
+
     return (
-      <motion.button
+      <MotionComponent
         whileHover={{ scale: 1.01 }}
         whileTap={{ scale: 0.98 }}
         ref={ref}

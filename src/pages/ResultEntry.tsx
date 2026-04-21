@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { FlaskConical, ChevronRight, CheckCircle2, User, Search } from 'lucide-react';
+import { FlaskConical, ChevronRight, CheckCircle2, User, Search, FileUp, FileText, ExternalLink, Loader2 } from 'lucide-react';
 import { api } from '../services/api';
 import { Button, Input, Card, Modal, Badge, ConfirmationModal } from '../components/UI';
 import { useAuth } from '../hooks/useAuth';
@@ -12,7 +12,10 @@ export default function ResultEntry() {
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [isConfirmOpen, setIsConfirmOpen] = useState(false);
+  const [isSubmitConfirmOpen, setIsSubmitConfirmOpen] = useState(false);
   const [resultToApprove, setResultToApprove] = useState<string | null>(null);
+  const [resultToSubmit, setResultToSubmit] = useState<string | null>(null);
+  const [uploadingId, setUploadingId] = useState<string | null>(null);
   const { user } = useAuth();
 
   const fetchBookings = async () => {
@@ -40,13 +43,74 @@ export default function ResultEntry() {
     }
   };
 
-  const handleUpdateResult = async (id: string, result: string, remarks: string) => {
+  const handleFileUpload = async (resultId: string, files: FileList) => {
+    setUploadingId(resultId);
+    const formData = new FormData();
+    Array.from(files).forEach(file => {
+      formData.append('reports', file);
+    });
+
     try {
-      await api.put(`/api/results/${id}`, { result, remarks });
-      const updatedResults = results.map(r => r.id === id ? { ...r, result, remarks, status: 'entered' } : r);
+      const { urls } = await api.post('/api/upload', formData);
+      const currentResult = results.find(r => r.id === resultId);
+      const updatedUrls = [...(currentResult?.pdfUrls || []), ...urls];
+      
+      await handleUpdateResult(resultId, 
+        currentResult?.result || '', 
+        currentResult?.remarks || '', 
+        updatedUrls
+      );
+    } catch (err: any) {
+      alert(err.message || 'Failed to upload files');
+    } finally {
+      setUploadingId(null);
+    }
+  };
+
+  const handleRemovePdf = async (resultId: string, urlToRemove: string) => {
+    const currentResult = results.find(r => r.id === resultId);
+    if (!currentResult) return;
+    
+    const updatedUrls = (currentResult.pdfUrls || []).filter((u: string) => u !== urlToRemove);
+    await handleUpdateResult(resultId, currentResult.result, currentResult.remarks, updatedUrls);
+  };
+
+  const handleUpdateResult = async (id: string, result: string, remarks: string, pdfUrls?: string[]) => {
+    try {
+      const currentResult = results.find(r => r.id === id);
+      const finalPdfUrls = pdfUrls || currentResult?.pdfUrls || [];
+      
+      await api.put(`/api/results/${id}`, { result, remarks, pdfUrls: finalPdfUrls });
+      const updatedResults = results.map(r => r.id === id ? { 
+        ...r, 
+        result, 
+        remarks, 
+        pdfUrls: finalPdfUrls, 
+        status: r.status === 'pending' ? 'entered' : r.status 
+      } : r);
       setResults(updatedResults);
     } catch (err) {
       alert('Failed to update result');
+    }
+  };
+
+  const handleConfirmSubmit = async () => {
+    if (!resultToSubmit) return;
+    const item = results.find(r => r.id === resultToSubmit);
+    if (!item) return;
+
+    try {
+      await api.put(`/api/results/${item.id}`, { 
+        result: item.result, 
+        remarks: item.remarks, 
+        pdfUrls: item.pdfUrls 
+      });
+      const updatedResults = results.map(r => r.id === item.id ? { ...r, status: 'entered' } : r);
+      setResults(updatedResults);
+      setIsSubmitConfirmOpen(false);
+      setResultToSubmit(null);
+    } catch (err) {
+      alert('Failed to submit results');
     }
   };
 
@@ -150,12 +214,11 @@ export default function ResultEntry() {
                         <Input 
                           placeholder="Enter value"
                           value={item.result || ''} 
-                          disabled={item.status === 'approved'}
+                          disabled={user?.role !== 'admin' && item.status !== 'pending'}
                           onChange={e => {
                             const val = e.target.value;
                             setResults(results.map(r => r.id === item.id ? { ...r, result: val } : r));
                           }}
-                          onBlur={() => handleUpdateResult(item.id, item.result, item.remarks)}
                         />
                         <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-zinc-400 italic font-medium">{item.unit}</span>
                       </div>
@@ -165,31 +228,120 @@ export default function ResultEntry() {
                       <Input 
                         placeholder="Clinical remarks..."
                         value={item.remarks || ''}
-                        disabled={item.status === 'approved'}
+                        disabled={user?.role !== 'admin' && item.status !== 'pending'}
                         onChange={e => {
                           const val = e.target.value;
                           setResults(results.map(r => r.id === item.id ? { ...r, remarks: val } : r));
                         }}
-                        onBlur={() => handleUpdateResult(item.id, item.result, item.remarks)}
                       />
                     </div>
                   </div>
 
-                  {user?.role === 'admin' && item.status === 'entered' && (
-                    <div className="mt-6 flex justify-end">
-                      <Button 
-                        variant="primary" 
-                        onClick={() => {
-                          setResultToApprove(item.id);
-                          setIsConfirmOpen(true);
-                        }} 
-                        className="gap-2"
-                      >
-                        <CheckCircle2 className="h-4 w-4" />
-                        Approve Result
-                      </Button>
+                  <div className="mt-6 space-y-4 pt-6 border-t border-zinc-100">
+                    <div className="flex flex-wrap gap-4">
+                      {(item.pdfUrls || []).map((url: string, index: number) => (
+                        <div key={index} className="flex items-center gap-2 p-2 rounded-lg bg-zinc-50 border border-zinc-200 group relative">
+                          <div className="flex h-8 w-8 items-center justify-center rounded-md bg-emerald-100 text-emerald-600">
+                            <FileText className="h-4 w-4" />
+                          </div>
+                          <div className="flex flex-col pr-6">
+                            <span className="text-[10px] font-bold text-zinc-900 leading-tight">Doc {index + 1}</span>
+                            <a 
+                              href={url} 
+                              target="_blank" 
+                              rel="noopener noreferrer"
+                              className="text-[9px] text-blue-600 font-medium hover:underline flex items-center gap-1"
+                            >
+                              View <ExternalLink className="h-2 w-2" />
+                            </a>
+                          </div>
+                          {(item.status === 'pending' || user?.role === 'admin') && (
+                            <button 
+                              onClick={() => handleRemovePdf(item.id, url)}
+                              className="absolute top-1 right-1 h-4 w-4 flex items-center justify-center rounded-full bg-red-100 text-red-600 opacity-0 group-hover:opacity-100 transition-opacity"
+                            >
+                              <span className="text-[10px] leading-none">×</span>
+                            </button>
+                          )}
+                        </div>
+                      ))}
+
+                      {(item.status === 'pending' || user?.role === 'admin') && (
+                        <label className="cursor-pointer">
+                          <input 
+                            type="file" 
+                            className="hidden" 
+                            multiple
+                            accept=".pdf,.jpg,.jpeg,.png"
+                            onChange={(e) => {
+                              if (e.target.files?.length) handleFileUpload(item.id, e.target.files);
+                            }}
+                          />
+                          <Button 
+                            variant="ghost" 
+                            size="sm" 
+                            className="h-12 w-32 gap-2 border-dashed border-2 border-zinc-200 flex flex-col items-center justify-center py-0"
+                            disabled={uploadingId === item.id}
+                            as="div"
+                          >
+                            {uploadingId === item.id ? (
+                              <Loader2 className="h-4 w-4 animate-spin" />
+                            ) : (
+                              <FileUp className="h-4 w-4" />
+                            )}
+                            <span className="text-[9px] uppercase font-bold tracking-wider">Add Document</span>
+                          </Button>
+                        </label>
+                      )}
+
+                      {(!item.pdfUrls || item.pdfUrls.length === 0) && !uploadingId && (
+                        <div className="flex items-center gap-2 text-zinc-400 py-2">
+                          <FileText className="h-5 w-5 opacity-50" />
+                          <span className="text-xs font-medium italic">No PDF reports attached</span>
+                        </div>
+                      )}
                     </div>
-                  )}
+
+                    <div className="flex justify-end gap-3 flex-wrap">
+                      {user?.role === 'admin' && (
+                        <Button 
+                          variant="outline"
+                          onClick={() => handleUpdateResult(item.id, item.result, item.remarks)}
+                          className="gap-2 w-full sm:w-auto"
+                        >
+                          Save Changes
+                        </Button>
+                      )}
+
+                      {item.status === 'pending' && (
+                        <Button
+                          variant="secondary"
+                          onClick={() => {
+                            setResultToSubmit(item.id);
+                            setIsSubmitConfirmOpen(true);
+                          }}
+                          className="gap-2 w-full sm:w-auto"
+                        >
+                          <CheckCircle2 className="h-4 w-4" />
+                          Submit Result
+                        </Button>
+                      )}
+
+                      {item.status === 'entered' && (
+                        <Button 
+                          variant="primary" 
+                          onClick={() => {
+                            setResultToApprove(item.id);
+                            setIsConfirmOpen(true);
+                          }} 
+                          className="gap-2 w-full sm:w-auto"
+                        >
+                          <CheckCircle2 className="h-4 w-4" />
+                          Approve Result
+                        </Button>
+                      )}
+                    </div>
+                  </div>
                 </Card>
               ))}
             </div>
@@ -202,6 +354,16 @@ export default function ResultEntry() {
           </div>
         )}
       </div>
+
+      <ConfirmationModal
+        isOpen={isSubmitConfirmOpen}
+        onClose={() => setIsSubmitConfirmOpen(false)}
+        onConfirm={handleConfirmSubmit}
+        variant="primary"
+        title="Submit Laboratory Findings"
+        message="Are you sure you want to submit these findings? Once submitted, staff members will not be able to edit the results. The record will move to 'Admin Review' status."
+        confirmText="Confirm Submission"
+      />
 
       <ConfirmationModal
         isOpen={isConfirmOpen}

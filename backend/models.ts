@@ -46,6 +46,7 @@ const ResultSchema = new mongoose.Schema({
   test: { type: mongoose.Schema.Types.ObjectId, ref: 'Test', required: true },
   result: { type: String },
   remarks: { type: String },
+  pdfUrls: [{ type: String }],
   status: { type: String, enum: ['pending', 'entered', 'approved'], default: 'pending' },
   updatedAt: { type: Date, default: Date.now }
 });

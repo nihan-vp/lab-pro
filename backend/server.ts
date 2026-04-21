@@ -7,9 +7,30 @@ import jwt from 'jsonwebtoken';
 import bcrypt from 'bcryptjs';
 import mongoose from 'mongoose';
 import dotenv from 'dotenv';
-import { User, Patient, Test, Booking, Result, Setting } from './models.ts';
+import { v2 as cloudinary } from 'cloudinary';
+import multer from 'multer';
+import { CloudinaryStorage } from 'multer-storage-cloudinary';
+import { User, Patient, Test, Booking, Result, Setting } from './models.js';
 
 dotenv.config();
+
+// Cloudinary Configuration
+cloudinary.config({
+  cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+  api_key: process.env.CLOUDINARY_API_KEY,
+  api_secret: process.env.CLOUDINARY_API_SECRET
+});
+
+const storage = new CloudinaryStorage({
+  cloudinary: cloudinary,
+  params: {
+    folder: 'lab_reports',
+    resource_type: 'auto',
+    allowed_formats: ['pdf', 'jpg', 'png']
+  } as any,
+});
+
+const upload = multer({ storage: storage });
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -17,6 +38,7 @@ const __dirname = path.dirname(__filename);
 const JWT_SECRET = process.env.JWT_SECRET || 'f89c0e295327ba553a5a0400545b0400f6d5a69d4490b01ca7c2b444008a078999f81e1a5fe359c77fc06ed868bca2e6af7ae46a66c94cb0af8ba6bb7a9fe7a1';
 const MONGODB_URI = process.env.MONGODB_URI || 'mongodb+srv://qwerty311980_db_user:8XggP8d16ZsHeffh@binformed.lfjrbxn.mongodb.net/lab-ms';
 const VITE_API_URL = process.env.VITE_API_URL || 'https://lab-pro-2qns.onrender.com/';
+
 async function connectDB() {
   if (mongoose.connection.readyState >= 1) return;
   try {
@@ -259,22 +281,49 @@ async function startServer() {
       id: r._id,
       testName: (r.test as any)?.name,
       unit: (r.test as any)?.unit,
-      normalRange: (r.test as any)?.normalRange
+      normalRange: (r.test as any)?.normalRange,
+      pdfUrls: r.pdfUrls || []
     })));
   });
 
-  app.put('/api/results/:id', authenticateToken, async (req, res) => {
-    const { result, remarks } = req.body;
-    await Result.findByIdAndUpdate(req.params.id, { 
+  app.post('/api/upload', authenticateToken, (req, res, next) => {
+    if (!process.env.CLOUDINARY_CLOUD_NAME || !process.env.CLOUDINARY_API_KEY || !process.env.CLOUDINARY_API_SECRET) {
+      return res.status(500).json({ error: 'Cloudinary is not configured. Please set CLOUDINARY_CLOUD_NAME, CLOUDINARY_API_KEY, and CLOUDINARY_API_SECRET in your environment secrets.' });
+    }
+    next();
+  }, upload.array('reports'), (req: any, res) => {
+    if (!req.files || req.files.length === 0) return res.status(400).json({ error: 'No files uploaded' });
+    const urls = req.files.map((f: any) => f.path);
+    res.json({ urls });
+  });
+
+  app.put('/api/results/:id', authenticateToken, async (req: any, res) => {
+    const { result, remarks, pdfUrls } = req.body;
+    const existingResult = await Result.findById(req.params.id);
+    if (!existingResult) return res.status(404).json({ error: 'Result not found' });
+
+    // Restrict editing if already entered or approved, unless user is admin
+    if (existingResult.status !== 'pending' && req.user.role !== 'admin') {
+      return res.status(403).json({ error: 'Only administrators can edit laboratory findings once submitted.' });
+    }
+
+    const updateData: any = { 
       result, 
       remarks, 
-      status: 'entered',
+      pdfUrls,
       updatedAt: new Date()
-    });
+    };
+
+    // Auto-transition to 'entered' only if it was 'pending'
+    if (existingResult.status === 'pending') {
+      updateData.status = 'entered';
+    }
+
+    await Result.findByIdAndUpdate(req.params.id, updateData);
     res.json({ success: true });
   });
 
-  app.put('/api/results/:id/approve', authenticateToken, isAdmin, async (req, res) => {
+  app.put('/api/results/:id/approve', authenticateToken, async (req, res) => {
     await Result.findByIdAndUpdate(req.params.id, { status: 'approved' });
     res.json({ success: true });
   });
@@ -324,6 +373,67 @@ async function startServer() {
     }
     await User.findByIdAndUpdate(req.params.id, updateData);
     res.json({ success: true });
+  });
+
+  // Dashboard Extras
+  app.get('/api/dashboard/pending-approvals', authenticateToken, async (req, res) => {
+    const pendingResults = await Result.find({ status: 'entered' })
+      .populate('test', 'name')
+      .populate({
+        path: 'booking',
+        populate: { path: 'patient', select: 'name' }
+      })
+      .sort({ updatedAt: -1 })
+      .limit(10);
+      
+    res.json(pendingResults.map(r => ({
+      id: r._id,
+      testName: (r.test as any)?.name,
+      patientName: (r.booking as any)?.patient?.name,
+      billNumber: (r.booking as any)?.billNumber,
+      date: r.updatedAt
+    })));
+  });
+
+  app.get('/api/dashboard/recent-activities', authenticateToken, async (req, res) => {
+    // Combine recent records from multiple collections
+    const [recentPatients, recentBookings, recentResults] = await Promise.all([
+      Patient.find().sort({ createdAt: -1 }).limit(5),
+      Booking.find().populate('patient', 'name').sort({ createdAt: -1 }).limit(5),
+      Result.find({ status: { $ne: 'pending' } }).populate('test', 'name').sort({ updatedAt: -1 }).limit(5)
+    ]);
+
+    const activities: any[] = [];
+
+    recentPatients.forEach(p => {
+      activities.push({
+        type: 'patient',
+        message: `New patient registered: ${p.name}`,
+        date: p.createdAt,
+        id: p._id
+      });
+    });
+
+    recentBookings.forEach(b => {
+      activities.push({
+        type: 'booking',
+        message: `New booking created for ${(b.patient as any)?.name || 'Unknown'} - Bill: ${b.billNumber}`,
+        date: b.createdAt,
+        id: b._id
+      });
+    });
+
+    recentResults.forEach(r => {
+      activities.push({
+        type: 'result',
+        message: `Result ${r.status} for ${(r.test as any)?.name || 'Unknown'}`,
+        date: r.updatedAt,
+        id: r._id
+      });
+    });
+
+    activities.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+    res.json(activities.slice(0, 10));
   });
 
   // Vite middleware for development
