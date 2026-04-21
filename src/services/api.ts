@@ -1,3 +1,4 @@
+const API_BASE = import.meta.env.VITE_API_URL;
 const getAuthHeaders = (isFormData = false) => {
   const token = localStorage.getItem('token');
   const headers: any = {};
@@ -8,13 +9,13 @@ const getAuthHeaders = (isFormData = false) => {
 
 export const api = {
   get: async (url: string) => {
-    const res = await fetch(url, { headers: getAuthHeaders() });
+    const res = await fetch(API_BASE + url, { headers: getAuthHeaders() });
     if (!res.ok) throw new Error(await res.text());
     return res.json();
   },
   post: async (url: string, data: any) => {
     const isFormData = data instanceof FormData;
-    const res = await fetch(url, {
+    const res = await fetch(API_BASE + url, {
       method: 'POST',
       headers: getAuthHeaders(isFormData),
       body: isFormData ? data : JSON.stringify(data)
@@ -24,7 +25,7 @@ export const api = {
   },
   put: async (url: string, data: any) => {
     const isFormData = data instanceof FormData;
-    const res = await fetch(url, {
+    const res = await fetch(API_BASE + url, {
       method: 'PUT',
       headers: getAuthHeaders(isFormData),
       body: isFormData ? data : JSON.stringify(data)
@@ -33,7 +34,7 @@ export const api = {
     return res.json();
   },
   delete: async (url: string) => {
-    const res = await fetch(url, {
+    const res = await fetch(API_BASE + url, {
       method: 'DELETE',
       headers: getAuthHeaders()
     });
