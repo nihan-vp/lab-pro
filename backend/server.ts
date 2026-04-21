@@ -85,7 +85,13 @@ async function startServer() {
   const PORT = 3000;
 
   app.use(express.json());
-  app.use(cors());
+  app.use(cors({
+    origin: [
+      'https://lab.nihan-vp.me',
+      'https://lab.nihan-vp.me/'
+    ],
+    credentials: true
+  }));
 
   // Auth Middleware
   const authenticateToken = (req: any, res: any, next: any) => {
