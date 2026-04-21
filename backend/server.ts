@@ -16,7 +16,7 @@ const __dirname = path.dirname(__filename);
 
 const JWT_SECRET = process.env.JWT_SECRET || 'f89c0e295327ba553a5a0400545b0400f6d5a69d4490b01ca7c2b444008a078999f81e1a5fe359c77fc06ed868bca2e6af7ae46a66c94cb0af8ba6bb7a9fe7a1';
 const MONGODB_URI = process.env.MONGODB_URI || 'mongodb+srv://qwerty311980_db_user:8XggP8d16ZsHeffh@binformed.lfjrbxn.mongodb.net/lab-ms';
-
+const VITE_API_URL = process.env.VITE_API_URL || 'https://lab-pro-2qns.onrender.com/';
 async function connectDB() {
   if (mongoose.connection.readyState >= 1) return;
   try {
