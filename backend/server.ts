@@ -86,12 +86,12 @@ async function startServer() {
 
   app.use(express.json());
   app.use(cors({
-    origin: [
-      'https://lab.nihan-vp.me',
-      'https://lab.nihan-vp.me/'
-    ],
-    credentials: true
-  }));
+  origin: [
+    "http://localhost:5173",
+    "https://lab.nihan-vp.me"
+  ],
+  credentials: true
+}));
 
   // Auth Middleware
   const authenticateToken = (req: any, res: any, next: any) => {
