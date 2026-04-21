@@ -1,0 +1,28 @@
+@import "tailwindcss";
+
+@layer utilities {
+  @media print {
+    .no-print {
+      display: none !important;
+    }
+    
+    body {
+      background: white !important;
+      padding: 0 !important;
+    }
+    
+    #invoice-print-area {
+      position: absolute;
+      left: 0;
+      top: 0;
+      width: 100%;
+      border: none !important;
+      padding: 0 !important;
+      margin: 0 !important;
+    }
+
+    aside, nav, header, button:not(.print-btn) {
+      display: none !important;
+    }
+  }
+}
