@@ -82,9 +82,9 @@ export default function Patients() {
   };
 
   const filteredPatients = patients.filter(p => 
-    p.name.toLowerCase().includes(search.toLowerCase()) || 
-    p.patientId.toLowerCase().includes(search.toLowerCase()) ||
-    p.mobile.includes(search)
+    (p.name || '').toLowerCase().includes(search.toLowerCase()) || 
+    (p.patientId || '').toLowerCase().includes(search.toLowerCase()) ||
+    (p.mobile || '').includes(search)
   );
 
   return (

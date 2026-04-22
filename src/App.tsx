@@ -18,6 +18,7 @@ import ResultEntry from './pages/ResultEntry';
 import Reports from './pages/Reports';
 import StaffManagement from './pages/StaffManagement';
 import Settings from './pages/Settings';
+import LabsManagement from './pages/LabsManagement';
 
 const ProtectedRoute = ({ children, roles }: { children: React.ReactNode; roles?: string[] }) => {
   const { user, loading } = useAuth();
@@ -114,6 +115,12 @@ export default function App() {
             <Route path="/settings" element={
               <ProtectedRoute roles={['admin']}>
                 <Settings />
+              </ProtectedRoute>
+            } />
+
+            <Route path="/super/labs" element={
+              <ProtectedRoute roles={['superadmin']}>
+                <LabsManagement />
               </ProtectedRoute>
             } />
 

@@ -128,8 +128,8 @@ export default function ResultEntry() {
   };
 
   const filteredBookings = bookings.filter(b => 
-    b.billNumber.toLowerCase().includes(search.toLowerCase()) || 
-    b.patientName.toLowerCase().includes(search.toLowerCase())
+    (b.billNumber || '').toLowerCase().includes(search.toLowerCase()) || 
+    (b.patientName || '').toLowerCase().includes(search.toLowerCase())
   );
 
   return (
@@ -200,7 +200,6 @@ export default function ResultEntry() {
                   <div className="flex justify-between items-start mb-6">
                     <div>
                       <h3 className="text-lg font-bold text-zinc-900">{item.testName}</h3>
-                      <p className="text-xs text-zinc-500 italic mt-0.5">Normal Range: {item.normalRange} {item.unit}</p>
                     </div>
                     <Badge variant={item.status === 'approved' ? 'success' : item.status === 'entered' ? 'warning' : 'neutral'}>
                       {item.status.toUpperCase()}

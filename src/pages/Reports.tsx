@@ -37,8 +37,8 @@ export default function Reports() {
   };
 
   const filteredBookings = bookings.filter(b => 
-    b.billNumber.toLowerCase().includes(search.toLowerCase()) || 
-    b.patientName.toLowerCase().includes(search.toLowerCase())
+    (b.billNumber || '').toLowerCase().includes(search.toLowerCase()) || 
+    (b.patientName || '').toLowerCase().includes(search.toLowerCase())
   );
 
   return (

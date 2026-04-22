@@ -11,7 +11,8 @@ import {
   UserCog, 
   LogOut,
   FlaskConical,
-  X
+  X,
+  Building2
 } from 'lucide-react';
 import { useAuth } from '../hooks/useAuth';
 import { useSettings } from '../hooks/useSettings';
@@ -38,6 +39,7 @@ export const Sidebar = ({ isOpen, onClose }: SidebarProps) => {
     { name: 'Reports', icon: FileText, path: '/reports', roles: ['admin', 'staff'] },
     { name: 'Staff', icon: UserCog, path: '/staff', roles: ['admin'] },
     { name: 'Settings', icon: Settings, path: '/settings', roles: ['admin'] },
+    { name: 'Labs Management', icon: Building2, path: '/super/labs', roles: ['superadmin'] },
   ];
 
   const handleLogout = () => {

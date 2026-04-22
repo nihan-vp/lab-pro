@@ -45,6 +45,10 @@ export default function Bookings() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (tests.length === 0) {
+      alert('Your clinical test directory is currently empty. Please ask a Super Admin to synchronize tests for this laboratory, or import them in Settings.');
+      return;
+    }
     if (!formData.patientId || formData.testIds.length === 0) {
       alert('Please select a patient and at least one test');
       return;
@@ -98,8 +102,8 @@ export default function Bookings() {
   };
 
   const filteredBookings = bookings.filter(b => 
-    b.billNumber.toLowerCase().includes(search.toLowerCase()) || 
-    b.patientName.toLowerCase().includes(search.toLowerCase())
+    (b.billNumber || '').toLowerCase().includes(search.toLowerCase()) || 
+    (b.patientName || '').toLowerCase().includes(search.toLowerCase())
   );
 
   return (
@@ -219,7 +223,7 @@ export default function Bookings() {
                         setFormData({...formData, testIds: newIds});
                       }}
                     />
-                    <span className="flex-1 truncate">{test.name}</span>
+                    <span className="flex-1 truncate">{test.test_particulars}</span>
                     <span className="text-zinc-400">${test.price}</span>
                   </label>
                 ))}

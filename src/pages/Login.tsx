@@ -6,8 +6,8 @@ import { Button, Input, Card } from '../components/UI';
 import { api } from '../services/api';
 
 export default function Login() {
-  const [username, setUsername] = useState('');
-  const [password, setPassword] = useState('');
+  const [username, setUsername] = useState('admin');
+  const [password, setPassword] = useState('admin123');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const { login } = useAuth();
@@ -21,9 +21,13 @@ export default function Login() {
     try {
       const data = await api.post('/api/auth/login', { username, password });
       login(data.token, data.user);
-      navigate('/dashboard');
+      if (data.user.role === 'superadmin') {
+        navigate('/super/labs');
+      } else {
+        navigate('/dashboard');
+      }
     } catch (err: any) {
-      setError('Invalid username or password');
+      setError(err.message || 'Invalid username or password');
     } finally {
       setLoading(false);
     }

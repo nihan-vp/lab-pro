@@ -19,14 +19,26 @@ export interface Patient {
   createdAt: string;
 }
 
-export interface Test {
+export interface Category {
   id: string;
   name: string;
-  code: string;
-  category: string;
+  description?: string;
+  createdAt?: string;
+}
+
+export interface Test {
+  id: string;
+  test_particulars: string;
+  lab_test_id: string;
+  categoryId?: string;
+  category?: Category;
+  categoryName?: string;
+  part_heading: string;
   price: number;
-  normalRange: string;
-  unit: string;
+  units: string;
+  status?: string;
+  is_check?: string;
+  created_at?: string;
 }
 
 export interface Booking {
@@ -52,7 +64,6 @@ export interface TestResult {
   testName: string;
   result: string;
   unit: string;
-  normalRange: string;
   remarks: string;
   status: 'pending' | 'entered' | 'approved';
 }

@@ -123,8 +123,8 @@ export default function Billing() {
   };
 
   const filteredBookings = bookings.filter(b => {
-    const matchesSearch = b.billNumber.toLowerCase().includes(search.toLowerCase()) || 
-                         b.patientName.toLowerCase().includes(search.toLowerCase());
+    const matchesSearch = (b.billNumber || '').toLowerCase().includes(search.toLowerCase()) || 
+                         (b.patientName || '').toLowerCase().includes(search.toLowerCase());
     
     if (filter === 'paid') return matchesSearch && b.due === 0;
     if (filter === 'unpaid') return matchesSearch && b.paid === 0;
@@ -346,7 +346,7 @@ export default function Billing() {
                         setFormData({...formData, testIds: newIds});
                       }}
                     />
-                    <span className="flex-1 truncate group-hover:text-zinc-900 transition-colors">{test.name}</span>
+                    <span className="flex-1 truncate group-hover:text-zinc-900 transition-colors">{test.test_particulars}</span>
                     <span className="text-zinc-400 group-hover:text-zinc-600">${test.price}</span>
                   </label>
                 ))}
@@ -474,7 +474,7 @@ export default function Billing() {
                   const test = tests.find(t => t.id === testId);
                   return (
                     <tr key={testId}>
-                      <td className="py-3 text-zinc-700">{test?.name || "Laboratory Test"}</td>
+                      <td className="py-3 text-zinc-700">{test?.test_particulars || "Laboratory Test"}</td>
                       <td className="py-3 text-right text-zinc-900 font-mono">${test?.price || 0}</td>
                     </tr>
                   );
