@@ -1,7 +1,7 @@
 import express from 'express';
 import bcrypt from 'bcryptjs';
-import { User } from '../models.js';
-import { authenticateToken, withLab, isAdmin } from '../middleware.js';
+import { User } from '../models.ts';
+import { authenticateToken, withLab, isAdmin } from '../middleware.ts';
 import multer from 'multer';
 import { CloudinaryStorage } from 'multer-storage-cloudinary';
 import { v2 as cloudinary } from 'cloudinary';

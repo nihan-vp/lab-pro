@@ -1,5 +1,5 @@
 import mongoose from 'mongoose';
-import { User, Setting, LabSchema, PatientSchema, CategorySchema, TestSchema, BookingSchema, ResultSchema, SettingSchema, UserSchema } from './models.js';
+import { User, Setting, LabSchema, PatientSchema, CategorySchema, TestSchema, BookingSchema, ResultSchema, SettingSchema, UserSchema } from './models.ts';
 import bcrypt from 'bcryptjs';
 
 export const labConnections = new Map<string, mongoose.Connection>();
