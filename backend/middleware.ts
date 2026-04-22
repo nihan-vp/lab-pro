@@ -1,5 +1,5 @@
 import jwt from 'jsonwebtoken';
-import { Lab } from './models.js';
+import { Lab } from './models.ts';
 import { getLabModels, MONGODB_URI } from './database.ts';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'f89c0e295327ba553a5a0400545b0400f6d5a69d4490b01ca7c2b444008a078999f81e1a5fe359c77fc06ed868bca2e6af7ae46a66c94cb0af8ba6bb7a9fe7a1';
