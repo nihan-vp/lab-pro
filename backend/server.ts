@@ -4,7 +4,7 @@ import { createServer as createViteServer } from 'vite';
 import path from 'path';
 import cors from 'cors';
 import dotenv from 'dotenv';
-import { connectDB } from './database.js';
+import { connectDB } from './database.ts';
 
 // Import Routes
 import authRoutes from './routes/auth.ts';
