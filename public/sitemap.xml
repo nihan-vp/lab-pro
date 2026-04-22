@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+  <url>
+    <loc>https://lab.nihan-vp.me/</loc>
+    <priority>1.0</priority>
+  </url>
+  <url>
+    <loc>https://lab.nihan-vp.me/login</loc>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://lab.nihan-vp.me/dashboard</loc>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://lab.nihan-vp.me/patients</loc>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://lab.nihan-vp.me/bookings</loc>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://lab.nihan-vp.me/reports</loc>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://lab.nihan-vp.me/settings</loc>
+    <priority>0.6</priority>
+  </url>
+</urlset>
