@@ -7,9 +7,9 @@ import dotenv from 'dotenv';
 import { connectDB } from './database.js';
 
 // Import Routes
-import authRoutes from './routes/auth.js';
-import superRoutes from './routes/super.js';
-import labRoutes from './routes/lab.js';
+import authRoutes from './routes/auth.ts';
+import superRoutes from './routes/super.ts';
+import labRoutes from './routes/lab.ts';
 
 dotenv.config();
 
