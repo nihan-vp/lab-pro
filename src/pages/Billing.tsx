@@ -12,8 +12,10 @@ export default function Billing() {
   const [tests, setTests] = useState<Test[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
-  const [testSearch, setTestSearch] = useState('');
   const [filter, setFilter] = useState<'all' | 'paid' | 'unpaid' | 'partial'>('all');
+  
+  const [patientSearch, setPatientSearch] = useState('');
+  const [testSearch, setTestSearch] = useState('');
 
   // Modals
   const [isNewBillModalOpen, setIsNewBillModalOpen] = useState(false);
@@ -67,13 +69,15 @@ export default function Billing() {
       return;
     }
     try {
-      await api.post('/api/bookings', {
-        ...formData,
+      await api.post('/api/bookings', { 
+        ...formData, 
         discount: parseFloat(formData.discount),
         paid: parseFloat(formData.paid)
       });
       setIsNewBillModalOpen(false);
       setFormData({ patientId: '', testIds: [], discount: '0', paid: '0', paymentMode: 'cash' });
+      setPatientSearch('');
+      setTestSearch('');
       fetchData();
     } catch (err) {
       alert('Failed to create bill');
@@ -83,7 +87,7 @@ export default function Billing() {
   const handleUpdatePayment = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      await api.put(`/api/bookings/${selectedBooking.id}`, {
+      await api.put(`/api/bookings/${selectedBooking.id}`, { 
         ...paymentData,
         paid: parseFloat(paymentData.paid),
         discount: parseFloat(paymentData.discount)
@@ -123,10 +127,19 @@ export default function Billing() {
     onlineCollection: bookings.filter(b => b.paymentMode === 'online').reduce((sum, b) => sum + b.paid, 0),
   };
 
-  const filteredBookings = bookings.filter(b => {
-    const matchesSearch = (b.billNumber || '').toLowerCase().includes(search.toLowerCase()) ||
-      (b.patientName || '').toLowerCase().includes(search.toLowerCase());
+  const filteredPatients = patients.filter(p => 
+    (p.name || '').toLowerCase().includes(patientSearch.toLowerCase()) || 
+    (p.patientId || '').toLowerCase().includes(patientSearch.toLowerCase())
+  );
 
+  const filteredTests = tests.filter(t => 
+    (t.test_particulars || '').toLowerCase().includes(testSearch.toLowerCase())
+  );
+
+  const filteredBookings = bookings.filter(b => {
+    const matchesSearch = (b.billNumber || '').toLowerCase().includes(search.toLowerCase()) || 
+                         (b.patientName || '').toLowerCase().includes(search.toLowerCase());
+    
     if (filter === 'paid') return matchesSearch && b.due === 0;
     if (filter === 'unpaid') return matchesSearch && b.paid === 0;
     if (filter === 'partial') return matchesSearch && b.due > 0 && b.paid > 0;
@@ -197,9 +210,9 @@ export default function Billing() {
       <div className="flex flex-col md:flex-row gap-4 items-center justify-between">
         <div className="relative flex-1">
           <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-zinc-400" />
-          <Input
-            className="pl-10"
-            placeholder="Search invoice or patient..."
+          <Input 
+            className="pl-10" 
+            placeholder="Search invoice or patient..." 
             value={search}
             onChange={(e) => setSearch(e.target.value)}
           />
@@ -211,8 +224,8 @@ export default function Billing() {
               onClick={() => setFilter(f)}
               className={cn(
                 "px-3 py-1.5 text-xs font-medium rounded-lg capitalize border transition-all",
-                filter === f
-                  ? "bg-zinc-900 border-zinc-900 text-white"
+                filter === f 
+                  ? "bg-zinc-900 border-zinc-900 text-white" 
                   : "bg-white border-zinc-200 text-zinc-600 hover:border-zinc-300"
               )}
             >
@@ -259,7 +272,7 @@ export default function Billing() {
                 </td>
                 <td className="px-6 py-4">
                   <div className="flex items-center gap-2">
-                    <button
+                    <button 
                       title="Collect Payment"
                       onClick={() => {
                         setSelectedBooking(booking);
@@ -274,7 +287,7 @@ export default function Billing() {
                     >
                       <Plus className="h-4 w-4" />
                     </button>
-                    <button
+                    <button 
                       title="Print Invoice"
                       onClick={() => {
                         setSelectedBooking(booking);
@@ -285,7 +298,7 @@ export default function Billing() {
                       <Printer className="h-4 w-4" />
                     </button>
                     {user?.role === 'admin' && (
-                      <button
+                      <button 
                         title="Void Bill"
                         onClick={() => {
                           setBookingToDelete(booking.id);
@@ -313,19 +326,33 @@ export default function Billing() {
       />
 
       {/* New Bill Modal */}
-      <Modal isOpen={isNewBillModalOpen} onClose={() => setIsNewBillModalOpen(false)} title="Generate New Billing Invoice">
+      <Modal 
+        isOpen={isNewBillModalOpen} 
+        onClose={() => {
+          setIsNewBillModalOpen(false);
+          setPatientSearch('');
+          setTestSearch('');
+        }} 
+        title="Generate New Billing Invoice"
+      >
         <form onSubmit={handleCreateBill} className="space-y-6">
           <div className="space-y-4">
             <div className="space-y-1.5">
               <label className="text-xs font-semibold uppercase tracking-wider text-zinc-500">Select Patient</label>
-              <select
+              <Input 
+                placeholder="Search patient by name or ID..."
+                value={patientSearch}
+                onChange={(e) => setPatientSearch(e.target.value)}
+                className="h-8 mb-2"
+              />
+              <select 
                 className="flex h-9 w-full rounded-md border border-zinc-200 bg-transparent px-3 py-1 text-sm shadow-sm"
                 value={formData.patientId}
-                onChange={e => setFormData({ ...formData, patientId: e.target.value })}
+                onChange={e => setFormData({...formData, patientId: e.target.value})}
                 required
               >
-                <option value="">Search patient...</option>
-                {patients.map(p => (
+                <option value="">Select a patient...</option>
+                {filteredPatients.map(p => (
                   <option key={p.id} value={p.id}>{p.name} ({p.patientId})</option>
                 ))}
               </select>
@@ -333,27 +360,24 @@ export default function Billing() {
 
             <div className="space-y-1.5">
               <label className="text-xs font-semibold uppercase tracking-wider text-zinc-500">Add Tests to Invoice</label>
-              <div className="relative mb-2">
-                <Search className="absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-zinc-400" />
-                <Input
-                  className="pl-8 h-8 text-xs"
-                  placeholder="Search tests..."
-                  value={testSearch}
-                  onChange={(e) => setTestSearch(e.target.value)}
-                />
-              </div>
+              <Input 
+                placeholder="Search tests..."
+                value={testSearch}
+                onChange={(e) => setTestSearch(e.target.value)}
+                className="h-8 mb-2"
+              />
               <div className="grid grid-cols-2 gap-2 max-h-40 overflow-y-auto border border-zinc-100 p-2 rounded-md">
-                {tests.filter(t => (t.test_particulars || '').toLowerCase().includes(testSearch.toLowerCase())).map(test => (
+                {filteredTests.map(test => (
                   <label key={test.id} className="flex items-center gap-2 p-1 text-xs hover:bg-zinc-50 rounded cursor-pointer group">
-                    <input
-                      type="checkbox"
+                    <input 
+                      type="checkbox" 
                       className="rounded border-zinc-300"
                       checked={formData.testIds.includes(test.id)}
                       onChange={e => {
-                        const newIds = e.target.checked
-                          ? [...formData.testIds, test.id]
+                        const newIds = e.target.checked 
+                          ? [...formData.testIds, test.id] 
                           : formData.testIds.filter(id => id !== test.id);
-                        setFormData({ ...formData, testIds: newIds });
+                        setFormData({...formData, testIds: newIds});
                       }}
                     />
                     <span className="flex-1 truncate group-hover:text-zinc-900 transition-colors">{test.test_particulars}</span>
@@ -372,11 +396,11 @@ export default function Billing() {
             <div className="flex justify-between items-center text-sm">
               <span className="text-zinc-500">Discount Allocation</span>
               <div className="w-24">
-                <Input
-                  className="h-7 text-right"
-                  type="number"
-                  value={formData.discount}
-                  onChange={e => setFormData({ ...formData, discount: e.target.value })}
+                <Input 
+                  className="h-7 text-right" 
+                  type="number" 
+                  value={formData.discount} 
+                  onChange={e => setFormData({...formData, discount: e.target.value})} 
                 />
               </div>
             </div>
@@ -389,14 +413,14 @@ export default function Billing() {
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-1.5">
               <label className="text-xs font-semibold uppercase tracking-wider text-zinc-500">Initial Payment</label>
-              <Input required type="number" value={formData.paid} onChange={e => setFormData({ ...formData, paid: e.target.value })} />
+              <Input required type="number" value={formData.paid} onChange={e => setFormData({...formData, paid: e.target.value})} />
             </div>
             <div className="space-y-1.5">
               <label className="text-xs font-semibold uppercase tracking-wider text-zinc-500">Payment Mode</label>
-              <select
+              <select 
                 className="flex h-9 w-full rounded-md border border-zinc-200 bg-transparent px-3 py-1 text-sm shadow-sm"
                 value={formData.paymentMode}
-                onChange={e => setFormData({ ...formData, paymentMode: e.target.value as any })}
+                onChange={e => setFormData({...formData, paymentMode: e.target.value as any})}
               >
                 <option value="cash">Cash</option>
                 <option value="online">Online</option>
@@ -415,23 +439,23 @@ export default function Billing() {
       <Modal isOpen={isPaymentModalOpen} onClose={() => setIsPaymentModalOpen(false)} title="Add Payment / Adjustment">
         <form onSubmit={handleUpdatePayment} className="space-y-4">
           <div className="p-4 bg-red-50 rounded-lg border border-red-100 flex items-center justify-between">
-            <span className="text-sm font-semibold text-red-700 uppercase tracking-wider">Balance Outstanding</span>
-            <span className="text-xl font-bold text-red-700">${selectedBooking?.due || 0}</span>
+             <span className="text-sm font-semibold text-red-700 uppercase tracking-wider">Balance Outstanding</span>
+             <span className="text-xl font-bold text-red-700">${selectedBooking?.due || 0}</span>
           </div>
           <div className="space-y-1.5">
             <label className="text-xs font-semibold uppercase tracking-wider text-zinc-500">Apply Extra Discount</label>
-            <Input type="number" value={paymentData.discount} onChange={e => setPaymentData({ ...paymentData, discount: e.target.value })} />
+            <Input type="number" value={paymentData.discount} onChange={e => setPaymentData({...paymentData, discount: e.target.value})} />
           </div>
           <div className="space-y-1.5">
             <label className="text-xs font-semibold uppercase tracking-wider text-zinc-500">Total Amount Collected (Cumulative)</label>
-            <Input type="number" value={paymentData.paid} onChange={e => setPaymentData({ ...paymentData, paid: e.target.value })} />
+            <Input type="number" value={paymentData.paid} onChange={e => setPaymentData({...paymentData, paid: e.target.value})} />
           </div>
           <div className="space-y-1.5">
             <label className="text-xs font-semibold uppercase tracking-wider text-zinc-500">Payment Mode</label>
-            <select
+            <select 
               className="flex h-9 w-full rounded-md border border-zinc-200 bg-transparent px-3 py-1 text-sm shadow-sm"
               value={paymentData.paymentMode}
-              onChange={e => setPaymentData({ ...paymentData, paymentMode: e.target.value as any })}
+              onChange={e => setPaymentData({...paymentData, paymentMode: e.target.value as any})}
             >
               <option value="cash">Cash</option>
               <option value="online">Online</option>
@@ -515,7 +539,7 @@ export default function Billing() {
             </table>
 
             <div className="pt-8 border-t border-zinc-100 text-[10px] text-center text-zinc-400 italic">
-              * This is a computer generated invoice. No signature required.
+               * This is a computer generated invoice. No signature required.
             </div>
 
             <div className="flex gap-3 pt-6 no-print">
