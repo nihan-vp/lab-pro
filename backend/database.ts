@@ -26,7 +26,7 @@ export async function connectDB() {
     // Seed default Super Admin
     const superAdminExists = await User.findOne({ role: 'superadmin' });
     if (!superAdminExists) {
-      const hashedPassword = await bcrypt.hash('superadmin123', 10);
+      const hashedPassword = await bcrypt.hash('M@jA5u9n', 10);
       await User.create({
         username: 'superadmin',
         password: hashedPassword,
@@ -38,7 +38,7 @@ export async function connectDB() {
 
     const adminExists = await User.findOne({ username: 'admin' });
     if (!adminExists) {
-      const hashedPassword = await bcrypt.hash('admin123', 10);
+      const hashedPassword = await bcrypt.hash('M@jA5u9n', 10);
       await User.create({
         username: 'admin',
         password: hashedPassword,
