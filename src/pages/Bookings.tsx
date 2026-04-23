@@ -10,13 +10,15 @@ export default function Bookings() {
   const [patients, setPatients] = useState<Patient[]>([]);
   const [tests, setTests] = useState<Test[]>([]);
   const [search, setSearch] = useState('');
+  const [patientSearch, setPatientSearch] = useState('');
+  const [testSearch, setTestSearch] = useState('');
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isConfirmOpen, setIsConfirmOpen] = useState(false);
   const [bookingToDelete, setBookingToDelete] = useState<string | null>(null);
   const [editingBooking, setEditingBooking] = useState<any | null>(null);
   const [loading, setLoading] = useState(true);
   const { user } = useAuth();
-  
+
   const [formData, setFormData] = useState({
     patientId: '',
     testIds: [] as string[]
@@ -57,8 +59,8 @@ export default function Bookings() {
       if (editingBooking) {
         await api.put(`/api/bookings/${editingBooking.id}`, formData);
       } else {
-        await api.post('/api/bookings', { 
-          ...formData, 
+        await api.post('/api/bookings', {
+          ...formData,
           discount: 0,
           paid: 0,
           paymentMode: 'cash'
@@ -67,6 +69,8 @@ export default function Bookings() {
       setIsModalOpen(false);
       setEditingBooking(null);
       setFormData({ patientId: '', testIds: [] });
+      setPatientSearch('');
+      setTestSearch('');
       fetchData();
     } catch (err) {
       alert(`Failed to ${editingBooking ? 'update' : 'create'} booking`);
@@ -101,8 +105,17 @@ export default function Bookings() {
     }, 0);
   };
 
-  const filteredBookings = bookings.filter(b => 
-    (b.billNumber || '').toLowerCase().includes(search.toLowerCase()) || 
+  const filteredPatients = patients.filter(p =>
+    (p.name || '').toLowerCase().includes(patientSearch.toLowerCase()) ||
+    (p.patientId || '').toLowerCase().includes(patientSearch.toLowerCase())
+  );
+
+  const filteredTests = tests.filter(t =>
+    (t.test_particulars || '').toLowerCase().includes(testSearch.toLowerCase())
+  );
+
+  const filteredBookings = bookings.filter(b =>
+    (b.billNumber || '').toLowerCase().includes(search.toLowerCase()) ||
     (b.patientName || '').toLowerCase().includes(search.toLowerCase())
   );
 
@@ -116,6 +129,8 @@ export default function Bookings() {
         <Button onClick={() => {
           setEditingBooking(null);
           setFormData({ patientId: '', testIds: [] });
+          setPatientSearch('');
+          setTestSearch('');
           setIsModalOpen(true);
         }} className="flex items-center gap-2">
           <Plus className="h-4 w-4" />
@@ -126,9 +141,9 @@ export default function Bookings() {
       <div className="flex items-center gap-4">
         <div className="relative flex-1">
           <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-zinc-400" />
-          <Input 
-            className="pl-10" 
-            placeholder="Search by bill number or patient name..." 
+          <Input
+            className="pl-10"
+            placeholder="Search by bill number or patient name..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
           />
@@ -161,14 +176,14 @@ export default function Bookings() {
                 </td>
                 <td className="px-6 py-4">
                   <div className="flex items-center gap-2">
-                    <button 
+                    <button
                       onClick={() => handleEdit(booking)}
                       className="text-zinc-400 hover:text-zinc-900 transition-colors"
                     >
                       <Edit2 className="h-4 w-4" />
                     </button>
                     {user?.role === 'admin' && (
-                      <button 
+                      <button
                         onClick={() => {
                           setBookingToDelete(booking.id);
                           setIsConfirmOpen(true);
@@ -189,19 +204,27 @@ export default function Bookings() {
       <Modal isOpen={isModalOpen} onClose={() => {
         setIsModalOpen(false);
         setEditingBooking(null);
+        setPatientSearch('');
+        setTestSearch('');
       }} title={editingBooking ? "Edit Booking Details" : "New Lab Request / Booking"}>
         <form onSubmit={handleSubmit} className="space-y-6">
           <div className="space-y-4">
             <div className="space-y-1.5">
               <label className="text-xs font-semibold uppercase tracking-wider text-zinc-500">Select Patient</label>
-              <select 
+              <Input
+                placeholder="Search patient by name or ID..."
+                value={patientSearch}
+                onChange={(e) => setPatientSearch(e.target.value)}
+                className="h-8 mb-2"
+              />
+              <select
                 className="flex h-9 w-full rounded-md border border-zinc-200 bg-transparent px-3 py-1 text-sm shadow-sm"
                 value={formData.patientId}
-                onChange={e => setFormData({...formData, patientId: e.target.value})}
+                onChange={e => setFormData({ ...formData, patientId: e.target.value })}
                 required
               >
                 <option value="">Select a patient...</option>
-                {patients.map(p => (
+                {filteredPatients.map(p => (
                   <option key={p.id} value={p.id}>{p.name} ({p.patientId})</option>
                 ))}
               </select>
@@ -209,18 +232,24 @@ export default function Bookings() {
 
             <div className="space-y-1.5">
               <label className="text-xs font-semibold uppercase tracking-wider text-zinc-500">Select Tests</label>
+              <Input
+                placeholder="Search tests..."
+                value={testSearch}
+                onChange={(e) => setTestSearch(e.target.value)}
+                className="h-8 mb-2"
+              />
               <div className="grid grid-cols-2 gap-2 max-h-40 overflow-y-auto border border-zinc-100 p-2 rounded-md">
-                {tests.map(test => (
+                {filteredTests.map(test => (
                   <label key={test.id} className="flex items-center gap-2 p-1 text-xs hover:bg-zinc-50 rounded cursor-pointer">
-                    <input 
-                      type="checkbox" 
+                    <input
+                      type="checkbox"
                       className="rounded border-zinc-300"
                       checked={formData.testIds.includes(test.id)}
                       onChange={e => {
-                        const newIds = e.target.checked 
-                          ? [...formData.testIds, test.id] 
+                        const newIds = e.target.checked
+                          ? [...formData.testIds, test.id]
                           : formData.testIds.filter(id => id !== test.id);
-                        setFormData({...formData, testIds: newIds});
+                        setFormData({ ...formData, testIds: newIds });
                       }}
                     />
                     <span className="flex-1 truncate">{test.test_particulars}</span>
